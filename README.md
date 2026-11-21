@@ -1,4 +1,4 @@
-# KINEX — Robotic Gesture Replication Lab (v2.2)
+# KINEX — Robotic Gesture Replication Lab (v2.3)
 
 A browser-based prototype for estimating arm and hand motion and visualizing an articulated robotic limb. No Arduino is required.
 
@@ -13,7 +13,14 @@ Once GitHub Pages is enabled for the main branch (root), open https://shrey-hhh.
 
 Alternatively, run `python -m http.server 8765 --bind 127.0.0.1` (or `py -m http.server 8765 --bind 127.0.0.1` on Windows). Internet access is required to fetch Three.js, MediaPipe and the tracking model, even for the offline gesture demo (the demo does not need a camera or tracking model). Camera frames are processed in the browser; the code does not send camera frames to a server.
 
-## V2.2 — Responsive tracking
+## V2.3 — Backward motion and partial visibility
+- Accuracy (Full) is now the default; Responsive (Lite) remains selectable.
+- In 3D torso-relative mode, the shoulder can update with visible shoulders and elbow even if the selected wrist is hidden. The previously rendered forearm direction is held, elbow/wrist measurements are unavailable, and CSV marks upper_arm_valid separately from arm_valid.
+- Side-profile mode measures projected sagittal-plane directions from image landmarks instead of monocular depth. Stop the webcam, select the arm nearest the camera and choose whether the subject's nose points left or right in the mirrored preview. Stand sideways; keep the torso upright and the movement in the camera plane. This mode does not estimate abduction or wrist deviation; movements out of the plane distort the estimates.
+- A single camera cannot reconstruct an entirely occluded limb. Use the side-profile measurement as a validation reference, not as general 3D motion capture.
+- Synthetic sign checks passed for both preview-facing directions. The actual camera behavior still requires testing.
+
+## V2.2 (historical release notes) — Responsive tracking
 - Responsive (Lite) is the default pose profile; Accuracy (Full) prioritizes pose-model fidelity. Stop the webcam before switching profiles. The selected model and GPU/CPU delegate are displayed.
 - Default smoothing is 25%. Hand filtering uses a time-based adaptive exponential filter; the rendered live hand no longer receives redundant interpolation.
 - The inference eligibility interval is reduced from 32 ms to 15 ms; actual throughput remains limited by the camera frame rate and model computation.
