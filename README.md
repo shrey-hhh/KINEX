@@ -1,4 +1,4 @@
-# KINEX — Robotic Gesture Replication Lab (v2.1)
+# KINEX — Robotic Gesture Replication Lab (v2.2)
 
 A browser-based prototype for estimating arm and hand motion and visualizing an articulated robotic limb. No Arduino is required.
 
@@ -12,6 +12,14 @@ Once GitHub Pages is enabled for the main branch (root), open https://shrey-hhh.
 4. To close: Stop camera, close the browser tab, and close the local server window.
 
 Alternatively, run `python -m http.server 8765 --bind 127.0.0.1` (or `py -m http.server 8765 --bind 127.0.0.1` on Windows). Internet access is required to fetch Three.js, MediaPipe and the tracking model, even for the offline gesture demo (the demo does not need a camera or tracking model). Camera frames are processed in the browser; the code does not send camera frames to a server.
+
+## V2.2 — Responsive tracking
+- Responsive (Lite) is the default pose profile; Accuracy (Full) prioritizes pose-model fidelity. Stop the webcam before switching profiles. The selected model and GPU/CPU delegate are displayed.
+- Default smoothing is 25%. Hand filtering uses a time-based adaptive exponential filter; the rendered live hand no longer receives redundant interpolation.
+- The inference eligibility interval is reduced from 32 ms to 15 ms; actual throughput remains limited by the camera frame rate and model computation.
+- The dashboard shows a smoothed combined inference duration and individual pose/hand inference durations. These are computation metrics, not end-to-end latency measurements.
+- Rendering pixel ratio is capped at 1.5 to reduce GPU load.
+- Webcam performance and motion accuracy require validation on the user's computer. Reduced smoothing and the Lite model can increase jitter or pose estimation errors.
 
 ## V2.1 — Body-relative motion correction
 The arm tracker reconstructs directions in an orthonormal torso coordinate frame, rather than interpreting all movement relative to the camera. The anatomical right direction is estimated from the shoulders, torso up from hips to shoulders (camera up is a labeled fallback), and forward from their cross product. Hand directions are transformed into the same frame. The renderer uses the filtered arm targets directly, avoiding an additional layer of arm lag.
