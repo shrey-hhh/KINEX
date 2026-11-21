@@ -1,4 +1,4 @@
-# KINEX — Robotic Gesture Replication Lab (v2)
+# KINEX — Robotic Gesture Replication Lab (v2.1)
 
 A browser-based prototype for estimating arm and hand motion and visualizing an articulated robotic limb. No Arduino is required.
 
@@ -12,6 +12,18 @@ Once GitHub Pages is enabled for the main branch (root), open https://shrey-hhh.
 4. To close: Stop camera, close the browser tab, and close the local server window.
 
 Alternatively, run `python -m http.server 8765 --bind 127.0.0.1` (or `py -m http.server 8765 --bind 127.0.0.1` on Windows). Internet access is required to fetch Three.js, MediaPipe and the tracking model, even for the offline gesture demo (the demo does not need a camera or tracking model). Camera frames are processed in the browser; the code does not send camera frames to a server.
+
+## V2.1 — Body-relative motion correction
+The arm tracker reconstructs directions in an orthonormal torso coordinate frame, rather than interpreting all movement relative to the camera. The anatomical right direction is estimated from the shoulders, torso up from hips to shoulders (camera up is a labeled fallback), and forward from their cross product. Hand directions are transformed into the same frame. The renderer uses the filtered arm targets directly, avoiding an additional layer of arm lag.
+
+- Positive signed shoulder pitch denotes forward motion; negative denotes backward motion. The pitch estimate is undefined near a purely lateral pose and is blank in that case. Positive abduction denotes outward motion for either selected arm.
+- Use **Side** view to distinguish forward and backward motion; the orange arrow denotes torso front.
+- The Full pose model is preferred, with Lite fallback. Low-confidence or degenerate geometry holds the previous displayed pose and blanks the arm metrics. Monocular depth is still estimated and can be inaccurate, especially with occlusion.
+- The CSV includes signed shoulder angles, tracking validity and the reference used. These are estimated kinematic measurements, not servo commands.
+- Synthetic math tests checked the forward/back sign across five torso yaw orientations, left/right abduction, elbow flexion, normalization and degenerate reference rejection.
+
+### Live validation
+Start with the camera showing both shoulders, hips if possible, and the selected arm. Test a neutral arm, then forward, backward, sideways and elbow flexion separately. Repeat while slowly turning your torso. Compare the sign and angles to a known reference and note tracking loss. Do not connect physical actuators based on these unvalidated estimates; any future hardware integration needs separate calibration, supervised bench testing and independent safety measures.
 
 ## V2.0 — Full-arm tracking
 - Select **Full arm + hand** and choose your right or left arm before starting the camera.
