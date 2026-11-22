@@ -7,6 +7,9 @@ let detector=null,visionAPI=null,stream=null,active=false,armed=false,paused=tru
 let lastVideo=-1,lastFrame=0,lastHand=0,lastHeartbeat=0,lastMove=0,lastStatus=0;
 let frameCount=0,rateStart=0,log=[],timings=[],lastValid=null,processing=false;
 let pendingMove=false,lastCommand='—',serverMessage='',lastState='DISARMED',previewX=.5,previewY=.5;
+// Background-safe timer: requestAnimationFrame is suspended in inactive browser tabs.
+let trackingTimer=null;
+function scheduleTracking(){if(active)trackingTimer=setTimeout(()=>loop(performance.now()),16);}
 let queuedDX=0,queuedDY=0;
 let trackedFrames=0,movementFrames=0,moveSent=0,moveAccepted=0,moveRejected=0;
 let lastPointerError='none';
@@ -102,12 +105,12 @@ async function startCamera(){
   machine.reset();filter.reset();cursor.reset();resetDiagnostic();queuedDX=queuedDY=0;lastVideo=-1;lastHand=0;
   cal.active=false;cal.message='Relative cursor control ready (calibration optional)';updateCalibration();
   message('Camera live. FULL GESTURE mode is on by default. Enable cursor control, point to move, then test click / pinch zoom / two-finger scrolling.');
-  requestAnimationFrame(loop);
+  scheduleTracking();
  }catch(e){message('Camera setup failed: '+e.message);stopCamera();}
  finally{$('cameraBtn').disabled=false;controls();}
 }
 function stopCamera(){
- active=false;stream?.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;
+ active=false;if(trackingTimer!==null){clearTimeout(trackingTimer);trackingTimer=null;}stream?.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;
  if(armed)post('/api/pause');
  $('placeholder').hidden=false;$('cameraStatus').textContent='Camera offline';
  machine.reset();filter.reset();cursor.reset();resetDiagnostic();queuedDX=queuedDY=0;lastValid=null;
@@ -170,7 +173,9 @@ function exportCSV(){
 }
 async function loop(now){
  if(!active)return;
- requestAnimationFrame(loop);
+ // Schedule the next inference independently of paint callbacks.
+ // If the host throttles these timers anyway, the bridge watchdog safely pauses.
+ scheduleTracking();
  if(processing||video.readyState<2||lastVideo===video.currentTime)return;
  processing=true;lastVideo=video.currentTime;
  try{
