@@ -12,6 +12,8 @@ import math
 import os
 from pathlib import Path
 import secrets
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -286,13 +288,62 @@ def monitor():
         CONTROL.watchdog_tick()
         time.sleep(.035)
 
+def desktop_browser_candidates():
+    """Windows Chrome and Edge paths; ordinary browser profile is unaffected."""
+    roots=[os.environ.get('PROGRAMFILES',''),os.environ.get('PROGRAMFILES(X86)',''),
+           os.environ.get('LOCALAPPDATA','')]
+    relpaths=[('Google','Chrome','Application','chrome.exe'),
+              ('Microsoft','Edge','Application','msedge.exe')]
+    for rel in relpaths:
+        for root in roots:
+            if root:
+                yield Path(root).joinpath(*rel)
+    for executable in ('chrome.exe','msedge.exe'):
+        resolved=shutil.which(executable)
+        if resolved:
+            yield Path(resolved)
+
+
+def desktop_browser_command(executable,profile,url):
+    """An isolated app window; background-throttling flags apply only here."""
+    return [str(executable),f'--user-data-dir={profile}','--no-first-run',
+            '--no-default-browser-check',f'--app={url}',
+            '--disable-background-timer-throttling',
+            '--disable-renderer-backgrounding',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-features=CalculateNativeWinOcclusion']
+
+
+def launch_desktop():
+    """Prefer a dedicated Chromium app window over a throttled normal tab."""
+    url=f'http://{HOST}:{PORT}/'
+    if sys.platform=='win32':
+        for browser in desktop_browser_candidates():
+            if not browser.is_file():
+                continue
+            profile=Path(os.environ.get('LOCALAPPDATA') or str(ROOT))/'KINEX-AIR'/'BrowserProfile'
+            try:
+                profile.mkdir(parents=True,exist_ok=True)
+                subprocess.Popen(desktop_browser_command(browser,profile,url),
+                                 stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+                print('Started dedicated KINEX AIR window:',browser.name)
+                print('Leave this window RUNNING while using other apps. Closing it pauses control.')
+                print('Background processing is best-effort and depends on Windows/browser conditions.')
+                return True
+            except OSError as error:
+                print('Could not start',browser,':',error)
+    print('Dedicated Chrome/Edge window not available. Opening normal browser; inactive tabs may pause tracking.')
+    webbrowser.open(url)
+    return False
+
+
 def main():
     threading.Thread(target=monitor,daemon=True).start()
     server=ThreadingHTTPServer((HOST,PORT),Handler)
     print(f'KINEX AIR available at http://{HOST}:{PORT}')
     print('OS control starts PAUSED. Press Escape at any time to pause globally.')
     print('Only numeric cursor commands go to the local bridge. Camera video remains in the browser.')
-    webbrowser.open(f'http://{HOST}:{PORT}/')
+    launch_desktop()
     try:server.serve_forever()
     except KeyboardInterrupt:pass
     finally:CONTROL.disarm();server.server_close()
