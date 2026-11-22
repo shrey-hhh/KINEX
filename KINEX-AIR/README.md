@@ -4,6 +4,21 @@ Gesture-driven **actual Windows desktop cursor**, not a simulated pointer. This 
 
 > **Status:** User confirmed real Windows cursor movement. Click, pinch-zoom and scrolling have new recognition fixes, but have not yet been confirmed on the user's webcam. Automated tests passed; actual gesture quality must be tested on Windows.
 
+## Desktop multitasking (Chrome/Edge, November 2026)
+
+**Why this change:** Browsers normally suspend `requestAnimationFrame` when a tab is hidden, so KINEX AIR used to stop processing webcam frames as soon as the user switched to another tab or application. The application now schedules hand inference with a timer, and its Python launcher opens a dedicated Chromium app window with a separate browser profile and app-specific background-throttling settings.
+
+1. Close the old KINEX AIR dashboard and Python terminal completely.
+2. Update the **existing** GitHub checkout (`git pull`), or download the current KINEX repository ZIP and **Extract All** to replace the older local copy.
+3. Run `KINEX-AIR/START_WINDOWS.bat`. Keep the terminal open. Chrome is preferred; Edge is the fallback. A **separate KINEX AIR desktop window** should open instead of a normal browser tab.
+4. In this dedicated window, click **Start webcam**, allow camera access to `127.0.0.1` (the new dedicated browser profile may ask again), and click **Enable cursor control**.
+5. Keep the dedicated KINEX AIR window **open** (it may be behind other windows). Switch to a different Chrome tab, File Explorer, or another normal Windows app. Test pointing, clicking, scrolling and zooming on that app. Start with windows overlapping rather than minimizing the KINEX window; minimized background behavior depends on Chrome/Windows.
+6. Press **Esc** from anywhere to stop control. If tracking stops or the computer sleeps, the bridge's heartbeat watchdog pauses commands. Return to KINEX AIR and explicitly enable control again.
+
+**Important limitations:** This is **best-effort browser-based background processing**, not a guaranteed invisible background service. Chrome/Edge can still suspend camera/video work when minimized or under particular power policies. The dedicated Chrome/Edge launch flags affect **only this isolated KINEX AIR browser profile**, not the user's normal browser. No new software packages or hardware purchases are required if Python and Chrome or Edge are already installed. If no supported browser is detected, the launcher falls back to a regular tab, which may pause while inactive.
+
+**Verification:** The code changes passed 25 JavaScript tests and 13 Python tests in local automated checks. The behavior when the dedicated window is not focused **has not yet been physically verified on the user's Windows laptop**.
+
 ## Launch on Windows
 
 1. Close previous KINEX AIR browser tabs and server/console windows. You may also close old KINEX sessions that are using the webcam.
