@@ -2,7 +2,7 @@
 
 Gesture-driven **actual Windows desktop cursor**, not a simulated pointer. This is a local-first, no-purchase HCI experiment based on the MediaPipe approach in the [KINEX robotics project](https://github.com/shrey-hhh/KINEX). No Arduino or servo is necessary.
 
-> **Status:** Automated gesture/state/bridge tests passed, but the actual Windows mouse and webcam cannot be tested from the development environment. The first real-PC test must use the desktop cursor diagnostics described below.
+> **Status:** User confirmed real Windows cursor movement. Click, pinch-zoom and scrolling have new recognition fixes, but have not yet been confirmed on the user's webcam. Automated tests passed; actual gesture quality must be tested on Windows.
 
 ## Launch on Windows
 
@@ -11,10 +11,10 @@ Gesture-driven **actual Windows desktop cursor**, not a simulated pointer. This 
 3. Double-click `START_WINDOWS.bat` (Python 3 must be available; no packages required). **Leave the command window open.**
 4. The local server opens **http://127.0.0.1:8770/** automatically. Verify that the dashboard says **Windows desktop API connected** (rather than Preview-only).
 5. Before starting the webcam, click **Test Windows cursor (+80px)**. The Windows mouse pointer should move slightly; the dashboard now shows the observed pixel displacement or a concrete Windows API error. Then click **Start webcam**. Hand landmark dots should appear on video. Six-second calibration is **optional** for relative movement; you can start right away.
-6. Leave **Pointer-only diagnostic** checked. Move your hand inside the camera view and confirm the **DETECTED FINGERTIP (camera position)** numbers change. This mode deliberately ignores whether the finger is bent, so we can isolate the actual finger-to-Windows connection. Click **Enable cursor control**.
+6. Keep **Pointer-only diagnostic UNCHECKED** (default). Click **Enable cursor control** after the webcam sees your hand. All five gestures are now enabled. Only check Pointer-only when troubleshooting cursor movement; it explicitly disables click, zoom, and scroll.
 7. Before testing gestures, confirm **Test Windows cursor (+80px)** worked even with gesture control disabled. Look at your real mouse pointer on the Windows desktop: it should move about 80 pixels horizontally. The diagnostic displays actual coordinates from `GetCursorPos`.
-8. Move your index fingertip left/right while still in webcam view. Confirm the **real Windows pointer** moves and the **SENT COMMANDS** count rises. In diagnostic mode the other gestures are temporarily disabled; open palm and Esc still pause. If finger motion is too slow, try **Rapid**. For nearby tabs use **Precision** or **Balanced**.
-9. After this succeeds, uncheck **Pointer-only diagnostic**. Now test the full gesture recognizer (point / click / pinch / scroll).
+8. First test index-only pointing, then curl that index finger to click once. For zoom, curl middle/ring/pinky and extend the thumb + index, spreading them to zoom in and approaching them to zoom out; for scrolling, extend index + middle and move the whole hand vertically. Watch the **CURRENT GESTURE** label and **Last Windows gesture command** readout. If a Windows command is accepted but nothing happens, move the pointer over a scrollable/zoomable application.
+9. If you want to isolate pointer tracking later, check **Pointer-only diagnostic**, and uncheck it to resume all gestures.
 10. **Press Esc anywhere to pause.** An open palm held 0.65 seconds also pauses. Use the dashboard to re-enable.
 
 ### Direct Windows bridge check — no login or password required
@@ -55,9 +55,9 @@ Interpretation: probe PASS + dashboard FAIL means the local HTTP/browser bridge 
 
 Zoom relies on application support for Ctrl+mouse wheel and may differ between apps. All gestures can be logged numerically to CSV. No video is sent to the bridge.
 
-## Engineering changes in v0.4
+## Engineering changes through v0.4
 
-- **Default Pointer-only diagnostic**: while enabled, any confidently detected hand moves the real Windows pointer according to its index fingertip, independent of index-extended recognition; click, zoom, and scroll are intentionally inactive in this test mode. Open-palm and Esc safety pauses remain active.
+- **Optional Pointer-only diagnostic**: while enabled, any confidently detected hand moves the real Windows pointer according to its index fingertip, independent of index-extended recognition; click, zoom, and scroll are intentionally inactive in this test mode. Open-palm and Esc safety pauses remain active.
 - Shows numerical fingertip coordinates beside Windows cursor coordinates so users can identify which end of the pipeline is failing.
 - Desktop-cursor verification: Windows API cursor position readback and direct 80-pixel movement test.
 - Removed misleading simulated pointer UI. Actual Windows coordinates are displayed instead.
@@ -89,3 +89,14 @@ Source of truth is GitHub: subsequent fixes are committed to this same `KINEX-AI
 The one-shot `POST /api/cursor-test` request is protected by the same localhost session token and browser origin check as the gesture commands, but does **not** depend on the camera, hand tracking, or controller arm state. The bridge checks actual Win32 cursor position before and after movement, reports the observed displacement and propagates native Windows errors. The cursor adapter supports a multi-monitor virtual desktop instead of silently clamping to the primary display. Esc blocks the test.
 
 Use **Test Windows cursor (+80px)** immediately after starting the local server, **before** starting the webcam. If the test reports `FAIL`, capture the exact message and use `diagnostics/cursor_probe.py` for a second direct Windows API check. This is a diagnostic update, not a claim of successful testing on the user's Windows computer.
+
+## Gesture recognition fix — November 22, 2026
+
+- Fixed root cause of pointing-only behavior: the Pointer-only diagnostic checkbox is now **off by default**, allowing all five gestures.
+- Clicking now takes precedence immediately after a valid index-only point and is no longer blocked by a transient pinch classification.
+- Zoom recognition distinguishes an intentionally outstretched thumb and keeps tracking through pinch changes. Zoom-in and zoom-out are derived from the sign of thumb–index separation change.
+- Two-finger scrolling tracks average palm motion and uses lower, gated thresholds. User direction: **hand up → scroll down**.
+- UI displays the most recent acknowledged or rejected click/scroll/zoom command. These indicate bridge acceptance, not guaranteed behavior of every target application.
+- 20 JavaScript gesture tests and 11 Python bridge tests passed locally. Physical webcam validation remains pending.
+
+**Updating your local copy:** GitHub commits do not magically replace the folder already extracted to your PC. Download/extract the latest source or use `git pull` if you cloned the repository with Git. Close the previous Python server and restart `START_WINDOWS.bat` from the updated `KINEX-AIR` folder, then hard-refresh the dashboard. Always check that Pointer-only diagnostic is **unchecked**.
