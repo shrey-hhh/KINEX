@@ -39,3 +39,18 @@ This document records the project and outstanding testing. **The full v0.4 appli
 - v0.2: relative pointer movement, profiles and clutch
 - v0.3: Windows cursor diagnostics, zoom and latency improvements
 - v0.4: pointer-only diagnostic to isolate fingertip tracking and command delivery
+
+
+## Active debugging workflow (November 22, 2026)
+
+**Reported issue:** The diagnostic dashboard follows the Windows mouse position, but the actual Windows pointer does not respond to index-finger motion. The OS readback is **not** evidence that input commands worked.
+
+**Step 1:** Run [the standalone Windows cursor probe](diagnostics/cursor_probe.py) with Python 3. It should move the actual pointer 80 pixels, report an observed delta, and restore its original position.
+
+**Step 2:** If native cursor movement passes, test the dashboard's **Test real cursor (+80px)** button. If that fails, inspect the local HTTP mouse bridge and the **ARMED / PAUSED** status.
+
+**Step 3:** Only when the bridge test passes, isolate the webcam pipeline: look at tracked index-tip coordinates, active cursor mode, movement commands sent, and acknowledgments.
+
+**Release policy:** Maintain this single `KINEX-AIR/` folder, committing revisions in place, not distributing differently named ZIP versions for each fix. Updating the GitHub repository does not automatically patch files already extracted on a user's computer; a pull/update and process restart are still needed.
+
+**Status:** This GitHub folder currently holds documentation and the Windows probe, **not the complete runnable KINEX AIR application source**. The working prototype remains in the locally downloaded archive until the full application source has been migrated here.
