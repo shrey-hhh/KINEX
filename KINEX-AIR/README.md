@@ -17,6 +17,18 @@ Gesture-driven **actual Windows desktop cursor**, not a simulated pointer. This 
 9. After this succeeds, uncheck **Pointer-only diagnostic**. Now test the full gesture recognizer (point / click / pinch / scroll).
 10. **Press Esc anywhere to pause.** An open palm held 0.65 seconds also pauses. Use the dashboard to re-enable.
 
+### Direct Windows bridge check — no login or password required
+
+**Do not share passwords, remote-access codes, API tokens, or the `token` field from `/api/status`.** This program does not require any account authentication to control your own PC. The browser and its local Python server negotiate a temporary session token automatically.
+
+1. Use the **latest** copy of this GitHub repository on your Windows laptop. Close old KINEX AIR tabs and Python consoles. Run `KINEX-AIR/START_WINDOWS.bat` and leave the black Python console open. It must show `KINEX AIR available at http://127.0.0.1:8770`. If it shows an exception or closes, the bridge is not running.
+2. Open **exactly** `http://127.0.0.1:8770/` in Chrome or Edge. Do not use GitHub Pages, a `file://` HTML page, or the older KINEX port 8765. Confirm the panel says **Windows desktop API connected**.
+3. With the webcam still off, click **Test Windows cursor (+80px)**. The result should show `PASS` with observed displacement, or `FAIL` with a specific message. The command runs without enabling gesture control.
+4. If the test fails, open a Command Prompt in the `KINEX-AIR` folder and run `py diagnostics\\cursor_probe.py` (or `python diagnostics\\cursor_probe.py`). This standalone test directly calls Windows `SetCursorPos`, moves briefly, and restores the position. It does not use the browser, webcam, or any third-party packages.
+5. Report the **PASS/FAIL line from the dashboard**, the **PASS/FAIL line from the standalone probe**, and whether the black server console shows any error. Do not paste the full `/api/status` response because it contains the local session token.
+
+Interpretation: probe PASS + dashboard FAIL means the local HTTP/browser bridge needs repair; probe FAIL means Windows rejected or blocked pointer movement in the current desktop session. Neither outcome is fixed by providing GitHub authorization.
+
 ### If the Windows cursor does not move
 
 - If the dashboard says **Preview-only**, you're not running on Windows. The bridge needs Windows; nothing here runs as a system mouse inside an ordinary website.
