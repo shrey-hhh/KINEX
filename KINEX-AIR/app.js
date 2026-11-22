@@ -67,7 +67,12 @@ async function post(path,payload={}){
 async function input(command){
  if(!armed)return false;
  const ok=await post('/api/input',command);
- if(ok)lastCommand=command.type;
+ if(ok){
+   lastCommand=command.type;
+   if(['click','zoom','scroll'].includes(command.type))$('actionReadout').textContent='Windows accepted '+command.type.toUpperCase()+(command.type==='zoom'?' '+(command.direction>0?'IN':'OUT'):'')+' · '+new Date().toLocaleTimeString();
+ }else if(command.type!=='heartbeat'){
+   $('actionReadout').textContent='Windows rejected '+command.type+': '+(serverMessage||'bridge error');
+ }
  return ok;
 }
 async function pollStatus(){
@@ -94,7 +99,7 @@ async function startCamera(){
   $('placeholder').hidden=true;$('cameraStatus').textContent='LIVE · image processed in browser';
   machine.reset();filter.reset();cursor.reset();resetDiagnostic();queuedDX=queuedDY=0;lastVideo=-1;lastHand=0;
   cal.active=false;cal.message='Relative cursor control ready (calibration optional)';updateCalibration();
-  message('Camera live. Use the one-click Windows cursor test at any time, then enable controls and try Pointer-only mode.');
+  message('Camera live. FULL GESTURE mode is on by default. Enable cursor control, point to move, then test click / pinch zoom / two-finger scrolling.');
   requestAnimationFrame(loop);
  }catch(e){message('Camera setup failed: '+e.message);stopCamera();}
  finally{$('cameraBtn').disabled=false;controls();}
@@ -125,7 +130,7 @@ function draw(points){
 }
 
 function updateGestures(mode){
- $('gesture').textContent=mode.replaceAll('_',' ');
+ $('gesture').textContent=(pointerOnly.checked?'[POINTER-ONLY] ':'')+mode.replaceAll('_',' ');
  document.querySelectorAll('.gesture[data-mode]').forEach(el=>el.classList.toggle('active',el.dataset.mode===mode));
 }
 function updateCalibration(){
@@ -252,14 +257,14 @@ $('calBtn').addEventListener('click',startCalibration);
 $('armBtn').addEventListener('click',async()=>{
  if(!active||cal.active)return;
  if(performance.now()-lastHand>1250){message('Show your index finger to the webcam before enabling cursor control.');return;}
- if(await post('/api/arm'))message('Windows control ACTIVE. Move your index finger with Pointer-only diagnostic selected.');
+ if(await post('/api/arm'))message(pointerOnly.checked?'Windows control ACTIVE: pointer-only diagnostic; click, zoom and scroll are DISABLED. Uncheck Pointer-only to enable all gestures.':'Windows control ACTIVE: all gestures ON. Point, curl index to click, pinch apart/together to zoom, raise two fingers and move hand to scroll.');
 });
 $('pauseBtn').addEventListener('click',async()=>{await post('/api/pause');message('Paused by dashboard.');});
 $('csvBtn').addEventListener('click',exportCSV);
 $('response').addEventListener('input',()=>{$('responseText').textContent=$('response').value+'%';});
 $('acceleration').addEventListener('input',()=>{$('accelerationText').textContent=$('acceleration').value+'%';});
 $('profile').addEventListener('change',()=>{filter.reset();cursor.reset();queuedDX=queuedDY=0;});
-pointerOnly.addEventListener('change',()=>{machine.reset();resetDiagnostic();filter.reset();cursor.reset();queuedDX=queuedDY=0;message(pointerOnly.checked?'POINTER DIAGNOSTIC: any tracked index fingertip moves the REAL Windows cursor. Other gestures temporarily off except open-palm pause.':'FULL GESTURE MODE: index-only pose required for cursor control.');});
+pointerOnly.addEventListener('change',()=>{machine.reset();resetDiagnostic();filter.reset();cursor.reset();queuedDX=queuedDY=0;message(pointerOnly.checked?'POINTER DIAGNOSTIC: any tracked index fingertip moves the REAL Windows cursor. Other gestures temporarily off except open-palm pause.':'FULL GESTURE MODE: index-only point, curl to click, pinch to zoom, two raised fingers to scroll.');});
 $('testBtn').addEventListener('click',async()=>{
  // Explicit, one-shot native Windows test: does not require webcam or arm.
  $('testBtn').disabled=true;
