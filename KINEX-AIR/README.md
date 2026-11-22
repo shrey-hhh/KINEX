@@ -97,6 +97,10 @@ Use **Test Windows cursor (+80px)** immediately after starting the local server,
 - Zoom recognition distinguishes an intentionally outstretched thumb and keeps tracking through pinch changes. Zoom-in and zoom-out are derived from the sign of thumb–index separation change.
 - Two-finger scrolling tracks average palm motion and uses lower, gated thresholds. User direction: **hand up → scroll down**.
 - UI displays the most recent acknowledged or rejected click/scroll/zoom command. These indicate bridge acceptance, not guaranteed behavior of every target application.
-- 20 JavaScript gesture tests and 11 Python bridge tests passed locally. Physical webcam validation remains pending.
+- 22 JavaScript gesture tests and 11 Python bridge tests passed locally. Physical webcam validation remains pending.
 
 **Updating your local copy:** GitHub commits do not magically replace the folder already extracted to your PC. Download/extract the latest source or use `git pull` if you cloned the repository with Git. Close the previous Python server and restart `START_WINDOWS.bat` from the updated `KINEX-AIR` folder, then hard-refresh the dashboard. Always check that Pointer-only diagnostic is **unchecked**.
+
+### Repeatable automated tests
+
+With Node.js installed, run `npm test` from the `KINEX-AIR` folder to execute the gesture tests. With Python installed, run `python -m unittest discover -s tests -p 'test_*.py'` to exercise the mocked Windows bridge. These checks do not replace testing with a real webcam and Windows cursor.
