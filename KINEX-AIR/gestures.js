@@ -102,7 +102,7 @@ export class GestureMachine {
     // Do not require !zoom here: a closing index naturally gets near the thumb
     // and would otherwise be mistakenly classified as a zoom gesture.
     const fist=!!f.curled?.index&&!!f.curled?.middle&&!!f.curled?.ring&&!!f.curled?.pinky;
-    if(this.clickReady && this.mode==='POINTER' && fist && now-this.lastPoint<=650 && now-this.lastClick>=550){
+    if(this.clickReady && fist && now-this.lastPoint<=650 && now-this.lastClick>=550){
       out.actions.push({type:'click'});this.lastClick=now;this.clickReady=false;
       this.clickHoldUntil=now+350;
       this.mode='IDLE';this.candidate='IDLE';this.pinchPrev=null;this.scrollPrev=null;
@@ -116,7 +116,7 @@ export class GestureMachine {
     if(next!==this.mode && now-this.since>=hold){
       this.mode=next;this.pinchPrev=null;this.pinchAccum=0;
       this.scrollPrev=null;this.scrollAccum=0;
-      if(next!=='POINTER')this.clickReady=false;
+      if(next!=='POINTER' && next!=='IDLE')this.clickReady=false;
     }
     out.mode=this.mode;
     if(this.mode==='POINTER'&&f.point&&!f.clutch){
