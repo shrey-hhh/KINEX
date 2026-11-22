@@ -20,6 +20,7 @@
 <div class="small" style="margin-top:10px">DETECTED FINGERTIP (camera position): <strong id="fingerMotion">—</strong></div>
 <div id="poseDebug" class="small" style="margin-top:10px;color:#a3d8d7">Awaiting webcam</div>
 <div id="zoomReadout" style="margin-top:12px;font-weight:750;color:#65dbba">No zoom command</div>
+<div id="actionReadout" class="small" style="margin-top:8px;color:#d3f2ff">Last Windows gesture command: none</div>
 <p class="small" id="boundsText">Calibration optional. Finger movement uses relative control; no screen-area jump.</p></div></section>
 </div>
 <div class="stats">
@@ -38,10 +39,10 @@
 <div class="gesture" data-mode="CLUTCH"><b>≡ Clutch</b>Index + middle + ring raised; reposition hand without moving cursor</div>
 <div class="gesture" data-mode="PALM"><b>✋ Pause</b>Open palm held 0.65 s</div>
 <div class="gesture"><b>Esc emergency</b>Global Windows safety pause</div>
-</div><p class="small">Gesture changes require sustained evidence. Three raised fingers engage clutch; releasing to index-only starts movement from the current cursor position without a jump. Zoom and scroll freeze the cursor.</p></div></section>
+</div><p class="small">Full gesture mode starts enabled. Gesture changes require sustained evidence. Three raised fingers engage clutch; releasing to index-only starts movement from the current cursor position without a jump. Zoom and scroll freeze the cursor.</p></div></section>
 <section class="panel"><div class="panelhead"><h2>04 / Engineering controls and telemetry</h2><span class="small">LIVE</span></div><div class="panelbody">
 <div class="alert" style="border-color:#245c69;background:#152b39"><strong>REAL CURSOR PIPELINE</strong><div class="small" id="pipeline">Tracked frames: 0 | finger movement frames: 0 | sent: 0 | acknowledged: 0 | rejected: 0</div><div class="small">Last bridge error: <span id="pointerError">none</span></div><div class="small">If tracked rises but movement stays 0, finger filtering or tracking is the problem. If movement rises but sent stays 0, the desktop controller is paused. If rejected rises, check the bridge error.</div></div>
-<div class="alert"><label for="pointerOnly"><input id="pointerOnly" type="checkbox" checked> <strong>Pointer-only diagnostic (recommended first)</strong></label><div class="small">When on, any clearly detected index fingertip moves the ACTUAL Windows cursor once enabled; click, scroll and zoom are temporarily disabled. Open palm and Esc still pause. After confirming movement, uncheck this to test all five gestures.</div></div>
+<div class="alert"><label for="pointerOnly"><input id="pointerOnly" type="checkbox"> <strong>Pointer-only diagnostic (turn on only to troubleshoot pointing)</strong></label><div class="small">OFF by default: all five gestures are active. When ON, only pointing works: click, zoom and scroll are intentionally disabled. Turn this on only to diagnose cursor movement. Open palm and Esc always pause.</div></div>
 <div class="controlrow"><label for="response">Cursor responsiveness</label><b id="responseText">80%</b></div><input id="response" type="range" min="5" max="100" value="80"/>
 <div class="controlrow" style="margin-top:14px"><label for="profile">Movement profile</label><select id="profile" style="background:#172b40;color:#e9f5ff;border:1px solid #345671;border-radius:7px;padding:7px"><option value="precision">Precision</option><option value="balanced" selected>Balanced</option><option value="rapid">Rapid</option></select></div>
 <div class="controlrow" style="margin-top:12px"><label for="acceleration">Speed acceleration</label><b id="accelerationText">100%</b></div><input id="acceleration" type="range" min="0" max="150" value="100"/>
