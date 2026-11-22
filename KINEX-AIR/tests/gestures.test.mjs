@@ -127,3 +127,43 @@ test('short deliberate movements are not blocked by a large zero-motion deadzone
  assert.equal(v.active,true);
  assert.ok(v.dx>0);
 });
+
+
+test('realistic two-finger scroll pose is distinguished from pointer',()=>{
+ const p=fixture();
+ p[10]={x:.50,y:.49}; p[11]={x:.50,y:.37}; p[12]={x:.50,y:.26};
+ const f=features(p);
+ assert.equal(f.scroll,true);
+ assert.equal(f.point,false);
+ const m=new GestureMachine();m.update(f,0);assert.equal(m.update(f,125).mode,'SCROLL');
+ const p2=p.map(v=>({...v}));for(const q of p2)q.y-=.06;
+ const up=m.update(features(p2),200);
+ assert.ok(up.actions.some(a=>a.type==='scroll'&&a.ticks<0),'hand up scrolls down');
+});
+
+test('pointer-to-index-curl generates one click, even if classifier flags pinch',()=>{
+ const p=fixture();const normal=features(p);
+ assert.equal(normal.point,true);
+ const m=new GestureMachine();m.update(normal,0);m.update(normal,110);
+ const closed=p.map(v=>({...v}));closed[7]={x:.41,y:.58};closed[8]={x:.42,y:.70};
+ const f=features(closed);assert.equal(f.curled.index,true);
+ f.zoom=true;
+ assert.equal(m.update(f,160).actions[0]?.type,'click');
+ assert.equal(m.update(f,190).actions.length,0);
+});
+
+test('spread thumb plus raised index enters zoom without selecting pointer',()=>{
+ const p=fixture();p[1]={x:.31,y:.73};p[2]={x:.29,y:.73};p[3]={x:.46,y:.64};p[4]={x:.64,y:.55};
+ const f=features(p);assert.equal(f.thumbOut,true);assert.equal(f.zoom,true);assert.equal(f.point,false);
+ const m=new GestureMachine();m.update(f,0);assert.equal(m.update(f,130).mode,'ZOOM');
+ const farther={...f,pinch:f.pinch+.16};
+ assert.equal(m.update(farther,250).actions[0]?.direction,1);
+ assert.equal(m.update({...f,pinch:f.pinch-.12},380).actions[0]?.direction,-1);
+});
+
+test('pointer-only diagnostic is opt-in in HTML',async()=>{
+ const fs=await import('node:fs/promises');
+ const html=await fs.readFile(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/<input id="pointerOnly" type="checkbox">/);
+ assert.doesNotMatch(html,/<input id="pointerOnly"[^>]*checked/);
+});
