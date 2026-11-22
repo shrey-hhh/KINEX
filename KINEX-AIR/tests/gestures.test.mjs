@@ -167,3 +167,21 @@ test('pointer-only diagnostic is opt-in in HTML',async()=>{
  assert.match(html,/<input id="pointerOnly" type="checkbox">/);
  assert.doesNotMatch(html,/<input id="pointerOnly"[^>]*checked/);
 });
+
+
+test('slow index curl still clicks after transitional idle frames',()=>{
+ const m=new GestureMachine(),point=baseFeatures();m.update(point,0);m.update(point,120);
+ const transition={...point,point:false,zoom:false,curled:{index:false,middle:true,ring:true,pinky:true}};
+ m.update(transition,200);assert.equal(m.update(transition,280).mode,'IDLE');
+ const fist={...transition,curled:{...transition.curled,index:true}};
+ assert.equal(m.update(fist,330).actions[0]?.type,'click');
+ assert.equal(m.update(fist,360).actions.length,0);
+});
+
+test('stale click readiness expires when user abandons pointing',()=>{
+ const m=new GestureMachine(),p=baseFeatures();m.update(p,0);m.update(p,100);
+ const partial={...p,point:false,curled:{index:false,middle:true,ring:true,pinky:true}};
+ m.update(partial,180);m.update(partial,290);
+ const fist={...partial,curled:{...partial.curled,index:true}};
+ assert.equal(m.update(fist,800).actions.length,0);
+});
