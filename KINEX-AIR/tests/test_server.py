@@ -3,7 +3,7 @@ import sys
 import unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from server import Controller
+from server import Controller, desktop_browser_command, desktop_browser_candidates
 
 class FakeMouse:
     available=True
@@ -72,5 +72,20 @@ class TestController(unittest.TestCase):
         self.assertTrue(self.control.paused);self.assertFalse(self.control.command({'type':'click'})[0])
     def test_escape_blocks_arming(self):
         self.mouse.esc=True;self.assertFalse(self.control.arm()[0])
+
+
+class TestDesktopLauncher(unittest.TestCase):
+    def test_chrome_app_window_has_independent_profile_and_background_flags(self):
+        cmd=desktop_browser_command(Path(r'C:\\Chrome\\chrome.exe'),Path(r'C:\\KINEX-profile'),
+                                    'http://127.0.0.1:8770/')
+        self.assertEqual(cmd[0],r'C:\\Chrome\\chrome.exe')
+        self.assertIn('--app=http://127.0.0.1:8770/',cmd)
+        self.assertIn('--user-data-dir=C:\\KINEX-profile',cmd)
+        self.assertIn('--disable-background-timer-throttling',cmd)
+        self.assertIn('--disable-renderer-backgrounding',cmd)
+        self.assertIn('--disable-backgrounding-occluded-windows',cmd)
+
+    def test_browser_candidate_search_returns_paths(self):
+        self.assertTrue(all(isinstance(p,Path) for p in desktop_browser_candidates()))
 
 if __name__=='__main__':unittest.main()
