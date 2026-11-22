@@ -13,6 +13,8 @@ let lastPointerError='none';
 let lastZoomDirection='—',lastZoomTime=0;
 let diagnosticPalmSince=null,diagnosticPalmLatched=false,diagnosticLastHand=null;
 const pointerOnly=$('pointerOnly');
+// Do not let the browser restore v0.4's old diagnostic checkbox state.
+pointerOnly.checked=false;
 function resetDiagnostic(){diagnosticPalmSince=null;diagnosticPalmLatched=false;diagnosticLastHand=null;}
 function diagnosticGesture(f,valid,now){
  const out={mode:'LOW_CONFIDENCE',actions:[]};
