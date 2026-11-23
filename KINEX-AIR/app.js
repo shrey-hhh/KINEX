@@ -220,7 +220,7 @@ async function loop(now){
     }
     mapped={x:previewX,y:previewY};
     if(lastZoomTime && now-lastZoomTime<650)$('zoomReadout').textContent='ZOOM '+lastZoomDirection;
-    else $('zoomReadout').textContent=output.mode==='ZOOM'?'ZOOM READY · move thumb and index apart/together':'No zoom command';
+    else $('zoomReadout').textContent=output.mode==='ZOOM_ARMING'?'ZOOM ARMING · hold thumb + index pinched and still for 0.5 s':output.mode==='ZOOM'?'ZOOM ACTIVE · spread apart = in; pinch together = out':'ZOOM LOCKED · hold a thumb + index pinch for 0.5 s to unlock';
     // Preserve fractional travel when the camera produces frames faster than
     // the HTTP bridge can accept commands. Never accumulate outside POINTER.
     if(relative?.active){queuedDX+=relative.dx;queuedDY+=relative.dy;movementFrames++;}
@@ -264,7 +264,7 @@ $('calBtn').addEventListener('click',startCalibration);
 $('armBtn').addEventListener('click',async()=>{
  if(!active||cal.active)return;
  if(performance.now()-lastHand>1250){message('Show your index finger to the webcam before enabling cursor control.');return;}
- if(await post('/api/arm'))message(pointerOnly.checked?'Windows control ACTIVE: pointer-only diagnostic; click, zoom and scroll are DISABLED. Uncheck Pointer-only to enable all gestures.':'Windows control ACTIVE: all gestures ON. Point, curl index to click, pinch apart/together to zoom, raise two fingers and move hand to scroll.');
+ if(await post('/api/arm'))message(pointerOnly.checked?'Windows control ACTIVE: pointer-only diagnostic; click, zoom and scroll are DISABLED. Uncheck Pointer-only to enable all gestures.':'Windows control ACTIVE: all gestures ON. To zoom, hold thumb/index pinched for half a second until ZOOM ACTIVE; then spread to zoom in or pinch together to zoom out. Other gestures unchanged.');
 });
 $('pauseBtn').addEventListener('click',async()=>{await post('/api/pause');message('Paused by dashboard.');});
 $('csvBtn').addEventListener('click',exportCSV);
