@@ -25,11 +25,13 @@ export function features(p){
   const scroll=fingers.index&&fingers.middle&&curled.ring&&curled.pinky&&!clutch;
   const pinchTouch=pinch<.52 && (fingers.index || distance(p[8],p[5])>1.15*distance(p[6],p[5]));
   const thumbOut=thumbStraight && thumbSpread>.80;
-  const zoom=othersCurled && !scroll && !clutch && (pinchTouch || (fingers.index && thumbOut && pinch<2.9));
-  // Once zoom mode starts, retain it across the finger geometry transitions
-  // that naturally happen when pinching apart/together.
-  const zoomContinuity=othersCurled&&!scroll&&!clutch&&pinch<3.2&&(fingers.index||pinch<1.05);
-  const point=fingers.index&&othersCurled&&!zoom;
+  // Zoom may ARM only from an intentional thumb/index near-touch. Merely
+  // extending the thumb must not interrupt pointing or initiate zoom.
+  const zoom=othersCurled && !scroll && !clutch && pinchTouch;
+  // After an intentional hold unlocks zoom, thumb-out or near-touch keeps it
+  // engaged while fingers move apart/together. Tucking the thumb releases it.
+  const zoomContinuity=othersCurled&&!scroll&&!clutch&&pinch<3.2&&(pinchTouch||thumbOut);
+  const point=fingers.index&&othersCurled&&!pinchTouch;
   // Anchor scrolling to the palm center rather than fingertip articulation.
   const scrollY=(p[0].y+p[5].y+p[9].y+p[13].y+p[17].y)/5;
   return {palm,pinch,thumbSpread,thumbOut,pinchTouch,fingers,curled,palmOpen,clutch,zoom,zoomContinuity,scroll,point,scrollY,index:{x:1-p[8].x,y:p[8].y}};
@@ -80,39 +82,102 @@ export class GestureMachine {
     this.lastPoint=-Infinity;this.lastClick=-Infinity;this.clickReady=false;this.clickHoldUntil=0;
     this.palmSince=null;this.palmLatched=false;
     this.pinchPrev=null;this.pinchAccum=0;this.zoomTick=-Infinity;
+    this.zoomArmSince=null;this.zoomArmLast=null;this.zoomArmPosition=null;this.zoomArmPinch=null;
+    this.zoomLostSince=null;this.zoomCooldownUntil=0;
     this.scrollPrev=null;this.scrollAccum=0;this.scrollTick=-Infinity;
+  }
+  resetZoomArm(){
+    this.zoomArmSince=null;this.zoomArmLast=null;
+    this.zoomArmPosition=null;this.zoomArmPinch=null;
   }
   update(f,now,confidence=.8,minimum=.55){
     const out={mode:this.mode,actions:[],confidence,features:f};
     if(!f||confidence<minimum){
       this.mode='IDLE';this.candidate='IDLE';this.pinchPrev=null;
       this.scrollPrev=null;this.palmSince=null;this.clickReady=false;
-      this.lastPoint=-Infinity;out.mode='LOW_CONFIDENCE';return out;
+      this.lastPoint=-Infinity;this.zoomLostSince=null;this.resetZoomArm();
+      out.mode='LOW_CONFIDENCE';return out;
     }
-    // Emergency palm pause takes priority over every other motion.
     if(f.palmOpen){
       if(this.palmSince===null)this.palmSince=now;
       if(now-this.palmSince>=650&&!this.palmLatched){out.actions.push({type:'pause'});this.palmLatched=true;}
       this.clickReady=false;this.pinchPrev=null;this.scrollPrev=null;
+      this.zoomLostSince=null;this.resetZoomArm();
       this.mode='PALM';this.candidate='PALM';out.mode='PALM';return out;
     }
     this.palmSince=null;this.palmLatched=false;
-    // Click is an EVENT, not a sustained gesture. A recent stable pointer
-    // followed by curling the index finger emits exactly one click.
-    // Do not require !zoom here: a closing index naturally gets near the thumb
-    // and would otherwise be mistakenly classified as a zoom gesture.
+    // Preserve the existing deliberate index-curl click, including brief
+    // transitional poses. A click never auto-activates zoom.
     const fist=!!f.curled?.index&&!!f.curled?.middle&&!!f.curled?.ring&&!!f.curled?.pinky;
     if(this.clickReady && fist && now-this.lastPoint<=650 && now-this.lastClick>=550){
       out.actions.push({type:'click'});this.lastClick=now;this.clickReady=false;
-      this.clickHoldUntil=now+350;
+      this.clickHoldUntil=now+350;this.resetZoomArm();
       this.mode='IDLE';this.candidate='IDLE';this.pinchPrev=null;this.scrollPrev=null;
       out.mode='CLICK';return out;
     }
     if(now<this.clickHoldUntil){out.mode='CLICK_COOLDOWN';return out;}
-    const continuingZoom=this.mode==='ZOOM'&&f.zoomContinuity;
-    const next=f.clutch?'CLUTCH':f.scroll?'SCROLL':(f.zoom||continuingZoom)?'ZOOM':f.point?'POINTER':'IDLE';
+
+    // Zoom is deliberately latched after a stable thumb/index PINCH HOLD.
+    // Thumb extension alone can never start zoom, even if the entire hand moves.
+    if(this.mode==='ZOOM'){
+      if(!f.zoomContinuity){
+        if(this.zoomLostSince===null)this.zoomLostSince=now;
+        if(now-this.zoomLostSince>=180){
+          this.mode='IDLE';this.candidate='IDLE';this.pinchPrev=null;
+          this.pinchAccum=0;this.zoomCooldownUntil=now+250;this.resetZoomArm();
+        }
+        out.mode=this.mode;return out;
+      }
+      this.zoomLostSince=null;
+      if(this.pinchPrev!==null){
+        const delta=f.pinch-this.pinchPrev;
+        // Ignore tiny landmark jitter and large single-frame tracking spikes.
+        if(Math.abs(delta)>=.012 && Math.abs(delta)<=.35){
+          if(this.pinchAccum && Math.sign(delta)!==Math.sign(this.pinchAccum) && Math.abs(delta)>.025){
+            this.pinchAccum=0;
+          }
+          this.pinchAccum+=delta;
+        }
+        // Deliberate motion and a lower command rate prevent runaway zoom.
+        if(Math.abs(this.pinchAccum)>=.18 && now-this.zoomTick>=170){
+          const direction=this.pinchAccum>0?1:-1;
+          out.actions.push({type:'zoom',direction,steps:1});
+          out.zoomDirection=direction>0?'IN':'OUT';
+          this.pinchAccum-=direction*.18;
+          this.zoomTick=now;
+        }
+      }
+      this.pinchPrev=f.pinch;
+      out.mode='ZOOM';return out;
+    }
+
+    const pinchStarting=!!f.zoom && !!f.pinchTouch && !f.clutch && !f.scroll;
+    if(pinchStarting && now>=this.zoomCooldownUntil){
+      const p=f.index||{x:0,y:0};
+      if(this.zoomArmSince===null || now-this.zoomArmLast>220 ||
+        Math.abs(f.pinch-this.zoomArmPinch)>.12 ||
+        Math.hypot(p.x-this.zoomArmPosition.x,p.y-this.zoomArmPosition.y)>.075){
+        this.zoomArmSince=now;
+        this.zoomArmPosition={x:p.x,y:p.y};
+        this.zoomArmPinch=f.pinch;
+      }
+      this.zoomArmLast=now;
+      if(now-this.zoomArmSince>=500){
+        this.mode='ZOOM';this.candidate='ZOOM';this.since=now;
+        this.pinchPrev=f.pinch;this.pinchAccum=0;this.zoomTick=now;
+        this.zoomLostSince=null;this.clickReady=false;this.scrollPrev=null;
+        this.resetZoomArm();out.mode='ZOOM';return out;
+      }
+      this.mode='ZOOM_ARMING';this.candidate='ZOOM_ARMING';
+      out.mode='ZOOM_ARMING';return out;
+    }
+    this.resetZoomArm();
+    if(this.mode==='ZOOM_ARMING'){
+      this.mode='IDLE';this.candidate='IDLE';
+    }
+    const next=f.clutch?'CLUTCH':f.scroll?'SCROLL':f.point?'POINTER':'IDLE';
     if(next!==this.candidate){this.candidate=next;this.since=now;}
-    const hold=next==='IDLE'?60:next==='POINTER'?70:next==='CLUTCH'?115:next==='ZOOM'?100:100;
+    const hold=next==='IDLE'?60:next==='POINTER'?70:next==='CLUTCH'?115:100;
     if(next!==this.mode && now-this.since>=hold){
       this.mode=next;this.pinchPrev=null;this.pinchAccum=0;
       this.scrollPrev=null;this.scrollAccum=0;
@@ -123,33 +188,12 @@ export class GestureMachine {
       this.lastPoint=now;this.clickReady=true;
       out.actions.push({type:'move',position:f.index});
     }
-    if(this.mode==='ZOOM'&&(f.zoom||f.zoomContinuity)){
-      if(this.pinchPrev!==null){
-        const delta=f.pinch-this.pinchPrev;
-        // Track signed separation changes and discard tiny landmark jitter.
-        // A direction reversal clears stale motion so in/out are independent.
-        if(Math.abs(delta)>.009 && Math.abs(delta)<.46){
-          if(this.pinchAccum && Math.sign(delta)!==Math.sign(this.pinchAccum)&&Math.abs(delta)>.025)this.pinchAccum=0;
-          this.pinchAccum+=delta;
-        }
-        if(Math.abs(this.pinchAccum)>=.085 && now-this.zoomTick>=70){
-          const direction=this.pinchAccum>0?1:-1;
-          const steps=Math.min(2,Math.max(1,Math.floor(Math.abs(this.pinchAccum)/.085)));
-          out.actions.push({type:'zoom',direction,steps});
-          out.zoomDirection=direction>0?'IN':'OUT';
-          this.pinchAccum-=direction*steps*.085;
-          this.zoomTick=now;
-        }
-      }
-      this.pinchPrev=f.pinch;
-    }
     if(this.mode==='SCROLL'&&f.scroll){
       if(this.scrollPrev!==null){
         const dy=f.scrollY-this.scrollPrev;
         if(Math.abs(dy)<.18)this.scrollAccum+=dy;
         if(Math.abs(this.scrollAccum)>=.032 && now-this.scrollTick>=85){
           const ticks=Math.min(2,Math.floor(Math.abs(this.scrollAccum)/.032));
-          // Image y increases downward. The user requested hand UP -> scroll DOWN.
           out.actions.push({type:'scroll',ticks:this.scrollAccum>0?ticks:-ticks});
           this.scrollAccum-=Math.sign(this.scrollAccum)*ticks*.032;
           this.scrollTick=now;
