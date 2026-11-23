@@ -34,12 +34,12 @@
 <section class="panel"><div class="panelhead"><h2>03 / Gesture command map</h2><span class="small">Stability gates enabled</span></div><div class="panelbody"><div class="gesturelist">
 <div class="gesture" data-mode="POINTER"><b>☝ Point</b>Index only → move mouse precisely</div>
 <div class="gesture" data-mode="CLICK"><b>● Click</b>Curl index after pointing</div>
-<div class="gesture" data-mode="ZOOM"><b>↔ Zoom</b>Pinch apart → in; together → out</div>
+<div class="gesture" data-mode="ZOOM"><b>↔ Zoom (pinch hold)</b>Hold thumb + index together 0.5 s to unlock; then spread → in, pinch → out. Tuck thumb to exit.</div>
 <div class="gesture" data-mode="SCROLL"><b>↕ Scroll</b>Index + middle; hand up → down</div>
 <div class="gesture" data-mode="CLUTCH"><b>≡ Clutch</b>Index + middle + ring raised; reposition hand without moving cursor</div>
 <div class="gesture" data-mode="PALM"><b>✋ Pause</b>Open palm held 0.65 s</div>
 <div class="gesture"><b>Esc emergency</b>Global Windows safety pause</div>
-</div><p class="small">Full gesture mode starts enabled. Gesture changes require sustained evidence. Three raised fingers engage clutch; releasing to index-only starts movement from the current cursor position without a jump. Zoom and scroll freeze the cursor.</p></div></section>
+</div><p class="small">Full gesture mode starts enabled. Zoom is locked by default. Hold thumb + index pinched together, with other fingers curled, for about half a second until ZOOM ACTIVE; then spread for zoom in or bring them together for zoom out. Tuck your thumb to exit. Three raised fingers engage clutch. Zoom and scroll freeze the cursor.</p></div></section>
 <section class="panel"><div class="panelhead"><h2>04 / Engineering controls and telemetry</h2><span class="small">LIVE</span></div><div class="panelbody">
 <div class="alert" style="border-color:#245c69;background:#152b39"><strong>REAL CURSOR PIPELINE</strong><div class="small" id="pipeline">Tracked frames: 0 | finger movement frames: 0 | sent: 0 | acknowledged: 0 | rejected: 0</div><div class="small">Last bridge error: <span id="pointerError">none</span></div><div class="small">If tracked rises but movement stays 0, finger filtering or tracking is the problem. If movement rises but sent stays 0, the desktop controller is paused. If rejected rises, check the bridge error.</div></div>
 <div class="alert"><label for="pointerOnly"><input id="pointerOnly" type="checkbox"> <strong>Pointer-only diagnostic (turn on only to troubleshoot pointing)</strong></label><div class="small">OFF by default: all five gestures are active. When ON, only pointing works: click, zoom and scroll are intentionally disabled. Turn this on only to diagnose cursor movement. Open palm and Esc always pause.</div></div>
