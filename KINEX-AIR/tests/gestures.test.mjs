@@ -32,12 +32,16 @@ test('index curling clicks once, not repeatedly and not without previous point',
  const fresh=new GestureMachine();assert.equal(fresh.update(fist,100).actions.length,0);
 });
 test('zoom separation increase and decrease generate opposite commands',()=>{
- const m=new GestureMachine(),f={...baseFeatures(),point:false,zoom:true,pinch:.3};
- m.update(f,0);m.update(f,250);m.update({...f,pinch:.38},300);let out=m.update({...f,pinch:.51},500);
- assert.equal(out.actions.find(a=>a.type==='zoom').direction,1);
- m.update({...f,pinch:.43},700);out=m.update({...f,pinch:.25},900);
- assert.equal(out.actions.find(a=>a.type==='zoom').direction,-1);
+ const m=new GestureMachine(),f={...baseFeatures(),point:false,zoom:true,zoomContinuity:true,pinchTouch:true,pinch:.30};
+ for(const t of [0,120,250,400,520])m.update(f,t);
+ m.update({...f,zoom:false,pinchTouch:false,pinch:.43},620);
+ let out=m.update({...f,zoom:false,pinchTouch:false,pinch:.66},730);
+ assert.equal(out.actions.find(a=>a.type==='zoom')?.direction,1);
+ m.update({...f,zoom:false,pinchTouch:false,pinch:.54},850);
+ out=m.update({...f,pinch:.25},970);
+ assert.equal(out.actions.find(a=>a.type==='zoom')?.direction,-1);
 });
+
 test('scrolling hand up causes negative wheel direction',()=>{
  const m=new GestureMachine(),f={...baseFeatures(),point:false,scroll:true,scrollY:.6};
  m.update(f,0);m.update(f,260);const out=m.update({...f,scrollY:.51},300);
@@ -111,15 +115,17 @@ test('clutch pose cannot trigger pointer commands and clears click readiness',()
 
 test('zoom remains active during separation and reports directions separately',()=>{
  const m=new GestureMachine();
- const f={...baseFeatures(),point:false,zoom:true,zoomContinuity:true,pinch:.30};
- m.update(f,0);m.update(f,150);const first=m.update({...f,pinch:.43},190);
- let o=m.update({...f,zoom:false,pinch:.64},280);
+ const f={...baseFeatures(),point:false,zoom:true,zoomContinuity:true,pinchTouch:true,pinch:.30};
+ for(const t of [0,150,300,450,530])m.update(f,t);
+ const first=m.update({...f,zoom:false,pinchTouch:false,pinch:.43},620);
+ let o=m.update({...f,zoom:false,pinchTouch:false,pinch:.64},740);
  assert.equal(o.mode,'ZOOM');
  assert.ok([first,o].some(x=>x.actions.some(a=>a.type==='zoom'&&a.direction===1)));
- m.update({...f,zoom:false,pinch:.55},420);
- o=m.update({...f,zoom:false,pinch:.37},500);
+ m.update({...f,zoom:false,pinchTouch:false,pinch:.50},900);
+ o=m.update({...f,pinch:.25},1030);
  assert.equal(o.actions.find(a=>a.type==='zoom')?.direction,-1);
 });
+
 test('short deliberate movements are not blocked by a large zero-motion deadzone',()=>{
  const c=new RelativeCursor(),bounds={left:.10,right:.90,top:.10,bottom:.90};
  c.step({x:.5,y:.5},100,bounds);
@@ -152,13 +158,19 @@ test('pointer-to-index-curl generates one click, even if classifier flags pinch'
  assert.equal(m.update(f,190).actions.length,0);
 });
 
-test('spread thumb plus raised index enters zoom without selecting pointer',()=>{
+test('spreading the thumb while pointing does not initiate zoom',()=>{
  const p=fixture();p[1]={x:.31,y:.73};p[2]={x:.29,y:.73};p[3]={x:.46,y:.64};p[4]={x:.64,y:.55};
- const f=features(p);assert.equal(f.thumbOut,true);assert.equal(f.zoom,true);assert.equal(f.point,false);
- const m=new GestureMachine();m.update(f,0);assert.equal(m.update(f,130).mode,'ZOOM');
- const farther={...f,pinch:f.pinch+.16};
- assert.equal(m.update(farther,250).actions[0]?.direction,1);
- assert.equal(m.update({...f,pinch:f.pinch-.12},380).actions[0]?.direction,-1);
+ const f=features(p);
+ assert.equal(f.thumbOut,true);
+ assert.equal(f.zoom,false);
+ assert.equal(f.point,true);
+ const m=new GestureMachine();
+ m.update(f,0);
+ assert.equal(m.update(f,180).mode,'POINTER');
+ for(const t of [220,320,420,520,620]){
+   const o=m.update({...f,pinch:f.pinch+(t%3)*.04},t);
+   assert.equal(o.actions.some(a=>a.type==='zoom'),false);
+ }
 });
 
 test('pointer-only diagnostic is opt-in in HTML',async()=>{
