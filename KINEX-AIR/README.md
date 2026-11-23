@@ -55,14 +55,26 @@ Interpretation: probe PASS + dashboard FAIL means the local HTTP/browser bridge 
 - If controls pause due to tracking loss or Esc, re-enable explicitly. The app does not resume automatically.
 - If the Windows cursor moves in a privileged app but not another, try targeting a normal desktop browser window. We do not escalate privileges.
 
+## Zoom activation safety — November 23, 2026
+
+**User report:** Pointing, clicking, scrolling, and background control work well as a prototype, but the old zoom recognizer could activate during ordinary hand movement.
+
+**Change:** Zoom starts **locked**, and simply opening the thumb no longer triggers it. To use zoom:
+
+1. Bring thumb and index fingertips together while curling the other three fingers, and **hold that pinch still for ~0.5 seconds**. The status changes from `ZOOM LOCKED` to `ZOOM ARMING` to `ZOOM ACTIVE`.
+2. With `ZOOM ACTIVE`, spread your thumb and index for zoom in, then close the gap for zoom out. For zoom out from a fresh start, first activate zoom with a closed pinch and create some separation; then reduce the separation.
+3. Tuck the thumb back and point normally to exit zoom. You can also press Esc to pause all gestures.
+
+**Anti-accidental measures:** hold-to-arm, movement-stability checking, a larger finger-separation threshold, capped command rate, jitter/spike rejection, and cooldown after exiting zoom. Other gestures and the Python bridge are unchanged. See `tests/zoom_safety.test.mjs` for regression tests. The update still needs real-camera validation; software tests do not guarantee recognition accuracy.
+
 ## Gestures
 
 | Gesture | Desktop action |
 |---|---|
 | Index extended, middle/ring/pinky curled | Real Windows mouse movement (relative, accelerated) |
 | Start pointing, then curl index | One real left click |
-| Thumb and index touching, then moving apart | Zoom **in** via Ctrl+wheel |
-| Thumb and index separated, then moving together | Zoom **out** via Ctrl+wheel |
+| Hold thumb and index together ~0.5 s, then move them apart | Deliberately arm zoom, then zoom **in** via Ctrl+wheel |
+| After zoom is armed, move thumb and index together | Zoom **out** via Ctrl+wheel |
 | Index + middle extended, hand up/down | Scroll down/up (user-chosen inversion) |
 | Index + middle + ring extended | Clutch: hold mouse still to re-center your hand |
 | Open palm held ~0.65 s | Safety pause |
