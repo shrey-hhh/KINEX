@@ -30,7 +30,7 @@ export function features(p){
   const zoom=othersCurled && !scroll && !clutch && pinchTouch;
   // After an intentional hold unlocks zoom, thumb-out or near-touch keeps it
   // engaged while fingers move apart/together. Tucking the thumb releases it.
-  const zoomContinuity=othersCurled&&!scroll&&!clutch&&pinch<3.2&&(pinchTouch||thumbOut);
+  const zoomContinuity=othersCurled&&!scroll&&!clutch&&pinch<3.2&&(pinchTouch||thumbOut||pinch<.95);
   const point=fingers.index&&othersCurled&&!pinchTouch;
   // Anchor scrolling to the palm center rather than fingertip articulation.
   const scrollY=(p[0].y+p[5].y+p[9].y+p[13].y+p[17].y)/5;
